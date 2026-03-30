@@ -1,0 +1,14 @@
+/Users/guilhermemartinsesilva/adc-pei-2526-part1/src/main/java/pt/unl/fct/di/adc/firstwebapp/resources/AdminResource.java
+/Users/guilhermemartinsesilva/adc-pei-2526-part1/src/main/java/pt/unl/fct/di/adc/firstwebapp/resources/AuthResource.java
+/Users/guilhermemartinsesilva/adc-pei-2526-part1/src/main/java/pt/unl/fct/di/adc/firstwebapp/resources/AuthToken.java
+/Users/guilhermemartinsesilva/adc-pei-2526-part1/src/main/java/pt/unl/fct/di/adc/firstwebapp/resources/AuthUtils.java
+/Users/guilhermemartinsesilva/adc-pei-2526-part1/src/main/java/pt/unl/fct/di/adc/firstwebapp/resources/ChangePwdData.java
+/Users/guilhermemartinsesilva/adc-pei-2526-part1/src/main/java/pt/unl/fct/di/adc/firstwebapp/resources/ChangeRoleData.java
+/Users/guilhermemartinsesilva/adc-pei-2526-part1/src/main/java/pt/unl/fct/di/adc/firstwebapp/resources/ErrorCode.java
+/Users/guilhermemartinsesilva/adc-pei-2526-part1/src/main/java/pt/unl/fct/di/adc/firstwebapp/resources/ErrorResponse.java
+/Users/guilhermemartinsesilva/adc-pei-2526-part1/src/main/java/pt/unl/fct/di/adc/firstwebapp/resources/InboundData.java
+/Users/guilhermemartinsesilva/adc-pei-2526-part1/src/main/java/pt/unl/fct/di/adc/firstwebapp/resources/ModifyData.java
+/Users/guilhermemartinsesilva/adc-pei-2526-part1/src/main/java/pt/unl/fct/di/adc/firstwebapp/resources/OutboundResponse.java
+/Users/guilhermemartinsesilva/adc-pei-2526-part1/src/main/java/pt/unl/fct/di/adc/firstwebapp/resources/RegisterData.java
+/Users/guilhermemartinsesilva/adc-pei-2526-part1/src/main/java/pt/unl/fct/di/adc/firstwebapp/resources/UserResource.java
+/Users/guilhermemartinsesilva/adc-pei-2526-part1/src/main/java/pt/unl/fct/di/adc/firstwebapp/resources/UserRole.java
