@@ -7,6 +7,14 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import pt.unl.fct.di.adc.firstwebapp.data.RegisterData;
+import pt.unl.fct.di.adc.firstwebapp.exceptions.ErrorCode;
+import pt.unl.fct.di.adc.firstwebapp.models.AuthToken;
+import pt.unl.fct.di.adc.firstwebapp.models.ErrorResponse;
+import pt.unl.fct.di.adc.firstwebapp.models.InboundData;
+import pt.unl.fct.di.adc.firstwebapp.models.OutboundResponse;
+import pt.unl.fct.di.adc.firstwebapp.util.AuthUtils;
+import pt.unl.fct.di.adc.firstwebapp.util.UserRole;
 
 import java.util.*;
 
@@ -25,18 +33,18 @@ public class AuthResource {
         RegisterData data = request.input;
 
         if (data == null || data.username == null || data.password == null) {
-            return Response.status(Response.Status.BAD_REQUEST).entity(new ErrorResponse(ErrorCode.INVALID_INPUT)).build();
+            return Response.ok(new ErrorResponse(ErrorCode.INVALID_INPUT)).build();
         }
 
         Key userKey = datastore.newKeyFactory().setKind("User").newKey(data.username);
         Entity user = datastore.get(userKey);
 
         if (user == null) {
-            return Response.status(Response.Status.NOT_FOUND).entity(new ErrorResponse(ErrorCode.USER_NOT_FOUND)).build();
+            return Response.ok(new ErrorResponse(ErrorCode.USER_NOT_FOUND)).build();
         }
 
         if (!user.getString("password").equals(data.password)) {
-            return Response.status(Response.Status.FORBIDDEN).entity(new ErrorResponse(ErrorCode.INVALID_CREDENTIALS)).build();
+            return Response.ok(new ErrorResponse(ErrorCode.INVALID_CREDENTIALS)).build();
         }
 
         UserRole role = UserRole.valueOf(user.getString("role"));
@@ -58,23 +66,16 @@ public class AuthResource {
     @Path("/logout")
     @Consumes(MediaType.APPLICATION_JSON)
     public Response logout(InboundData<Map<String, String>> request) {
-        AuthToken token = request.token;
-
         if (request.input == null || !request.input.containsKey("username")) {
-            return Response.status(400).entity(new ErrorResponse(ErrorCode.INVALID_INPUT)).build();
+            return Response.ok(new ErrorResponse(ErrorCode.INVALID_INPUT)).build();
         }
         String targetUsername = request.input.get("username");
-        Entity sessionExecutor = AuthUtils.validateSession(datastore, token, UserRole.USER, UserRole.BOFFICER, UserRole.ADMIN);
-
-        if (sessionExecutor == null) {
-            return Response.status(403).entity(new ErrorResponse(ErrorCode.INVALID_TOKEN)).build();
-        }
-
+        Entity sessionExecutor = AuthUtils.validateSession(datastore, request.token, UserRole.USER, UserRole.BOFFICER, UserRole.ADMIN);
         String accessorUsername = sessionExecutor.getString("username");
         UserRole accessorRole = UserRole.valueOf(sessionExecutor.getString("role"));
 
         if (accessorRole != UserRole.ADMIN && !accessorUsername.equals(targetUsername)) {
-            return Response.status(403).entity(new ErrorResponse(ErrorCode.UNAUTHORIZED)).build();
+            return Response.ok(new ErrorResponse(ErrorCode.UNAUTHORIZED)).build();
         }
 
         try {
@@ -98,7 +99,7 @@ public class AuthResource {
                     .build();
 
         } catch (Exception e) {
-            return Response.status(500).entity(new ErrorResponse(ErrorCode.FORBIDDEN)).build();
+            return Response.ok(new ErrorResponse(ErrorCode.FORBIDDEN)).build();
         }
     }
 }

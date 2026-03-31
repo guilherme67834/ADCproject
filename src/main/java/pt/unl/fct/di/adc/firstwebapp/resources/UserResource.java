@@ -1,6 +1,5 @@
 package pt.unl.fct.di.adc.firstwebapp.resources;
 
-import com.google.cloud.Timestamp;
 import com.google.cloud.datastore.Datastore;
 import com.google.cloud.datastore.DatastoreOptions;
 import com.google.cloud.datastore.Entity;
@@ -11,6 +10,15 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import pt.unl.fct.di.adc.firstwebapp.data.ChangePwdData;
+import pt.unl.fct.di.adc.firstwebapp.data.ModifyData;
+import pt.unl.fct.di.adc.firstwebapp.data.RegisterData;
+import pt.unl.fct.di.adc.firstwebapp.exceptions.ErrorCode;
+import pt.unl.fct.di.adc.firstwebapp.models.ErrorResponse;
+import pt.unl.fct.di.adc.firstwebapp.models.InboundData;
+import pt.unl.fct.di.adc.firstwebapp.models.OutboundResponse;
+import pt.unl.fct.di.adc.firstwebapp.util.AuthUtils;
+import pt.unl.fct.di.adc.firstwebapp.util.UserRole;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -33,14 +41,14 @@ public class UserResource {
                 || data.confirmation == null || !data.password.equals(data.confirmation)
                 || !data.username.contains("@") || data.phone == null || data.address == null
                 || data.role == null) {
-            return Response.status(Response.Status.BAD_REQUEST).entity(new ErrorResponse(ErrorCode.INVALID_INPUT)).build();
+            return Response.ok(new ErrorResponse(ErrorCode.INVALID_INPUT)).build();
         }
 
         Key userKey = datastore.newKeyFactory().setKind("User").newKey(data.username);
         Entity user = datastore.get(userKey);
 
         if (user != null) {
-            return Response.status(Response.Status.CONFLICT).entity(new ErrorResponse(ErrorCode.USER_ALREADY_EXISTS)).build();
+            return Response.ok(new ErrorResponse(ErrorCode.USER_ALREADY_EXISTS)).build();
         }
 
         user = Entity.newBuilder(userKey)
@@ -64,31 +72,17 @@ public class UserResource {
     @Path("/modaccount")
     @Consumes(MediaType.APPLICATION_JSON)
     public Response modifyAccount(InboundData<ModifyData> request) {
-        AuthToken token = request.token;
+        Entity session = AuthUtils.validateSession(datastore, request.token, UserRole.USER, UserRole.BOFFICER, UserRole.ADMIN);
         ModifyData input = request.input;
 
         if (input == null || input.username == null || input.attributes == null) {
-            return Response.status(400).entity(new ErrorResponse(ErrorCode.INVALID_INPUT)).build();
+            return Response.ok(new ErrorResponse(ErrorCode.INVALID_INPUT)).build();
         }
 
         Key targetKey = datastore.newKeyFactory().setKind("User").newKey(input.username);
         Entity targetUser = datastore.get(targetKey);
         if (targetUser == null)
-            return Response.status(404).entity(new ErrorResponse(ErrorCode.USER_NOT_FOUND)).build();
-
-        if (token == null || token.tokenId == null)
-            return Response.status(403).entity(new ErrorResponse(ErrorCode.INVALID_TOKEN)).build();
-
-        Key sessionKey = datastore.newKeyFactory().setKind("Session").newKey(token.tokenId);
-        Entity session = datastore.get(sessionKey);
-
-        if (session == null)
-            return Response.status(403).entity(new ErrorResponse(ErrorCode.INVALID_TOKEN)).build();
-
-        if (session.getTimestamp("expiresAt").compareTo(Timestamp.now()) < 0) {
-            datastore.delete(sessionKey);
-            return Response.status(403).entity(new ErrorResponse(ErrorCode.TOKEN_EXPIRED)).build();
-        }
+            return Response.ok(new ErrorResponse(ErrorCode.USER_NOT_FOUND)).build();
 
         String accessorUsername = session.getString("username");
         UserRole accessorRole = UserRole.valueOf(session.getString("role"));
@@ -108,7 +102,7 @@ public class UserResource {
         }
 
         if (!allowed)
-            return Response.status(403).entity(new ErrorResponse(ErrorCode.UNAUTHORIZED)).build();
+            return Response.ok(new ErrorResponse(ErrorCode.UNAUTHORIZED)).build();
 
         try {
             Entity.Builder builder = Entity.newBuilder(targetUser);
@@ -124,7 +118,7 @@ public class UserResource {
             return Response.ok(OutboundResponse.success(Map.of("message", "Updated successfully"))).build();
 
         } catch (Exception e) {
-            return Response.status(500).entity(new ErrorResponse(ErrorCode.FORBIDDEN)).build();
+            return Response.ok(new ErrorResponse(ErrorCode.FORBIDDEN)).build();
         }
     }
 
@@ -133,35 +127,16 @@ public class UserResource {
     @Path("/changeuserpwd")
     @Consumes(MediaType.APPLICATION_JSON)
     public Response changePassword(InboundData<ChangePwdData> request) {
-        AuthToken token = request.token;
+        Entity session = AuthUtils.validateSession(datastore, request.token, UserRole.USER, UserRole.BOFFICER, UserRole.ADMIN);
         ChangePwdData input = request.input;
-        Entity session = AuthUtils.validateSession(datastore, token, UserRole.USER, UserRole.BOFFICER, UserRole.ADMIN);
-
-        if (session == null) {
-            if (token == null || token.tokenId == null)
-                return Response.status(403).entity(new ErrorResponse(ErrorCode.INVALID_TOKEN)).build();
-
-            Key sessionKey = datastore.newKeyFactory().setKind("Session").newKey(token.tokenId);
-            Entity existingSession = datastore.get(sessionKey);
-
-            if (existingSession == null)
-                return Response.status(403).entity(new ErrorResponse(ErrorCode.INVALID_TOKEN)).build();
-
-            if (existingSession.getTimestamp("expiresAt").compareTo(Timestamp.now()) < 0) {
-                datastore.delete(sessionKey);
-                return Response.status(403).entity(new ErrorResponse(ErrorCode.TOKEN_EXPIRED)).build();
-            }
-            return Response.status(403).entity(new ErrorResponse(ErrorCode.UNAUTHORIZED)).build();
-        }
 
         if (input == null || input.username == null || input.oldPassword == null || input.newPassword == null) {
-            return Response.status(400).entity(new ErrorResponse(ErrorCode.INVALID_INPUT)).build();
+            return Response.ok(new ErrorResponse(ErrorCode.INVALID_INPUT)).build();
         }
 
         String accessorUsername = session.getString("username");
-
         if (!accessorUsername.equals(input.username)) {
-            return Response.status(403).entity(new ErrorResponse(ErrorCode.UNAUTHORIZED)).build();
+            return Response.ok(new ErrorResponse(ErrorCode.UNAUTHORIZED)).build();
         }
 
         try {
@@ -169,21 +144,20 @@ public class UserResource {
             Entity user = datastore.get(userKey);
 
             if (user == null) {
-                return Response.status(404).entity(new ErrorResponse(ErrorCode.USER_NOT_FOUND)).build();
+                return Response.ok(new ErrorResponse(ErrorCode.USER_NOT_FOUND)).build();
             }
 
             if (!user.getString("password").equals(input.oldPassword)) {
-                return Response.status(403).entity(new ErrorResponse(ErrorCode.INVALID_CREDENTIALS)).build();
+                return Response.ok(new ErrorResponse(ErrorCode.INVALID_CREDENTIALS)).build();
             }
 
             Entity updatedUser = Entity.newBuilder(user).set("password", input.newPassword).build();
-
             datastore.put(updatedUser);
 
             return Response.ok(OutboundResponse.success(Map.of("message", "Password changed successfully"))).build();
 
         } catch (Exception e) {
-            return Response.status(500).entity(new ErrorResponse(ErrorCode.FORBIDDEN)).build();
+            return Response.ok(new ErrorResponse(ErrorCode.FORBIDDEN)).build();
         }
     }
 
