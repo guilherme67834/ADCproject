@@ -110,8 +110,8 @@ public class UserResource {
             if (input.attributes.containsKey("phone")) {
                 builder.set("phone", input.attributes.get("phone"));
             }
-            if (input.attributes.containsKey("email")) {
-                builder.set("email", input.attributes.get("email"));
+            if (input.attributes.containsKey("address")) {
+                builder.set("address", input.attributes.get("address"));
             }
 
             datastore.put(builder.build());
